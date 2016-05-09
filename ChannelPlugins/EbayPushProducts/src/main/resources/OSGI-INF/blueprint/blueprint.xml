@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+
+ /******************************************************************************
+ * Product: OmnEmpiere - sub-project of ADempiere                              *
+ * Copyright (C) ALL GPL FOSS PROJECTS where taken                            *
+ * This program is free software; you can redistribute it and/or modify it    *
+ * under the terms version 2 of the GNU General Public License as published   *
+ * by the Free Software Foundation. This program is distributed in the hope   *
+ * that it will be useful, but WITHOUT ANY WARRANTY; without even the implied *
+ * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.           *
+ * See the GNU General Public License for more details.                       *
+ * You should have received a copy of the GNU General Public License along    *
+ * with this program; if not, write to the Free Software Foundation, Inc.,    *
+ * 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.                     *
+ *****************************************************************************/
+
+-->
+<blueprint
+    xmlns="http://www.osgi.org/xmlns/blueprint/v1.0.0"
+    xmlns:cm="http://aries.apache.org/blueprint/xmlns/blueprint-cm/v1.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.osgi.org/xmlns/blueprint/v1.0.0 http://www.osgi.org/xmlns/blueprint/v1.0.0/blueprint.xsd">
+
+    <camelContext xmlns="http://camel.apache.org/schema/blueprint">
+  <route>
+    <from uri="activemq:queue:ProductsEbay?username=smx&amp;password=smx"/>
+    <split streaming="true">
+      <tokenize token="Product" xml="true"></tokenize>
+      <bean ref="myTransform" method="transform"/>
+      <setHeader headerName="Content-Type" inheritErrorHandler="true" id="setHeader">
+        <constant>text/xml</constant>
+      </setHeader>
+      <setHeader headerName="CamelHttpMethod" inheritErrorHandler="true" id="setHeader">
+        <constant>POST</constant>
+      </setHeader>
+      <setHeader headerName="X-EBAY-API-COMPATIBILITY-LEVEL" inheritErrorHandler="true" id="setHeader">
+        <constant>931</constant>
+      </setHeader>
+      <setHeader headerName="X-EBAY-API-APP-NAME" inheritErrorHandler="true" id="setHeader">
+        <constant>API App Name (see EBAY Developer Documentation</constant>
+      </setHeader>
+      <setHeader headerName="X-EBAY-API-CERT-NAME" inheritErrorHandler="true" id="setHeader">
+        <constant>API Cert Name</constant>
+      </setHeader>
+      <setHeader headerName="X-EBAY-API-DEV-NAME" inheritErrorHandler="true" id="setHeader">
+        <constant>API Developer Name</constant>
+      </setHeader>
+      <setHeader headerName="X-EBAY-API-CALL-NAME" inheritErrorHandler="true" id="setHeader">
+        <constant>AddItem</constant>
+      </setHeader>
+      <setHeader headerName="X-EBAY-API-SITEID" inheritErrorHandler="true" id="setHeader">
+        <constant>3</constant>
+      </setHeader>
+      <to uri="https://api.sandbox.ebay.com/ws/api.dll"/>
+<!--   Use appropriate URI here, sandbox for testing  -->
+      <bean ref="myTransform" method="getServerResponse"/>
+      <to uri="log:EbayPushProducts?level=INFO&amp;ShowHeaders=true&amp;ShowBody=true"/>
+    </split>
+  </route>
+</camelContext>
+
+   
+
+    <cm:property-placeholder persistent-id="net.omnempiere.EbayPushProducts.MyTransform">
+        <cm:default-properties>
+            <cm:property name="prefix" value="OmnEmpiereEbayConnector"/>
+        </cm:default-properties>
+    </cm:property-placeholder>
+
+    <bean id="myTransform" class="net.omnempiere.EbayPushProducts.MyTransform">
+        <property name="prefix" value="${prefix}" />
+    </bean>
+
+</blueprint>

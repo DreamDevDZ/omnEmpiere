@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+
+/******************************************************************************
+ * Product: OmnEmpiere - sub-project of ADempiere                              *
+ * Copyright (C) ALL GPL FOSS PROJECTS where taken                            *
+ * This program is free software; you can redistribute it and/or modify it    *
+ * under the terms version 2 of the GNU General Public License as published   *
+ * by the Free Software Foundation. This program is distributed in the hope   *
+ * that it will be useful, but WITHOUT ANY WARRANTY; without even the implied *
+ * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.           *
+ * See the GNU General Public License for more details.                       *
+ * You should have received a copy of the GNU General Public License along    *
+ * with this program; if not, write to the Free Software Foundation, Inc.,    *
+ * 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.                     *
+ *****************************************************************************/
+
+The Magento get orders uses the eMail sent by Magento to the customer. Please configure Magento correctly (see documetnation) and set the <from element according to the IMAP URI and PWD   
+
+-->
+
+<blueprint
+    xmlns="http://www.osgi.org/xmlns/blueprint/v1.0.0"
+    xmlns:cm="http://aries.apache.org/blueprint/xmlns/blueprint-cm/v1.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.osgi.org/xmlns/blueprint/v1.0.0 http://www.osgi.org/xmlns/blueprint/v1.0.0/blueprint.xsd">
+
+    <camelContext xmlns="http://camel.apache.org/schema/blueprint">
+  <route>
+    <from uri="imaps://Your Email URI here &amp;password=your pathword here&amp;delete=true"/>
+    <bean ref="myTransform" method="transform"/>
+    <split streaming="true">
+      <tokenize token="sqlStatement" xml="true"></tokenize>
+      <to uri="activemq:queue:SqlStatements?username=smx&amp;password=smx"/>
+      <to uri="log:MagentoGetOrders"/>
+    </split>
+    <bean ref="myTransform" method="addToDB"/>
+  </route>
+</camelContext>
+
+   
+
+    <cm:property-placeholder persistent-id="net.omnempiere.MagentoGetOrders.MyTransform">
+        <cm:default-properties>
+            <cm:property name="prefix" value="OmnEmpiereMagentoConnector"/>
+        </cm:default-properties>
+    </cm:property-placeholder>
+
+    <bean id="myTransform" class="net.omnempiere.MagentoGetOrders.MyTransform">
+        <property name="prefix" value="${prefix}" />
+    </bean>
+     
+  
+
+</blueprint>
