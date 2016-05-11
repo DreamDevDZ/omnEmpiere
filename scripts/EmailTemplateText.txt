@@ -1,0 +1,24 @@
+<!--
+[
+<order><i_order_id>{{var order.increment_id}}</i_order_id>
+        <ad_client_id>1000000</ad_client_id>
+        <ad_org_id>1000000</ad_org_id>
+        <m_pricelist_id>1000000</m_pricelist_id>
+        <created>{{var order.getCreatedAtFormated('short')}}</created>
+        <m_warehouse_id>1000000</m_warehouse_id>
+        <bpartnervalue>{{htmlescape var=$order.getCustomerName()}}</bpartnervalue>
+        <address1>{{var order.getShippingAddress().format('Text One Line')}}</address1>
+        <address2></address2>
+        <postal></postal>
+        <city></city>
+        <countrycode></countrycode>
+        <email>{{var order.getCustomerEmail()}}</email>
+        <c_doctype_id>1000032</c_doctype_id>
+        <m_shipper_id>{{var order.getShippingDescription()}}</m_shipper_id>
+        <doctypename>Standard Order</doctypename>
+        <taxamt>{{var order.getBaseTaxAmount()}}</taxamt>
+        <c_currency_id>114</c_currency_id>
+        <orderproducts>{{layout handle="sales_email_order_items" order=$order}}</orderproducts>
+    </order>    
+]
+-->
