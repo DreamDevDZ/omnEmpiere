@@ -165,7 +165,7 @@ class OmnEmpiereAddProduct {
                        'use_config_manage_stock' => 0, //'Use config settings' checkbox
                        'manage_stock'=>1, //manage stock
                        'min_sale_qty'=>1, //Minimum Qty Allowed in Shopping Cart
-                       'max_sale_qty'=>2, //Maximum Qty Allowed in Shopping Cart
+                       'max_sale_qty'=>$message[QtyOnHand], //Maximum Qty Allowed in Shopping Cart
                        'is_in_stock' => 1, //Stock Availability
                        'qty' => $message[QtyOnHand] //qty
                             )
