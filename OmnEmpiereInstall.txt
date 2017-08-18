@@ -1,0 +1,123 @@
+OmnEmpiere Setup procedure
+
+Summary: OmnEmpiere is based on IdEmpiere adn Apache ServiceMix, utilizing a MicroService based approach to connect the Sales Channels
+
+Installing OmnEmpiere requires basic knowledge in Linux, Java, Apache Maven, Apache Karaf, Apache ActiveMQ, (A)IdEmpiere and PHP. for a good IdEmpiere introduction check the book ADempiere 3.4 ERP Solutions
+
+Experience in working with online marketplaces like EBAY is of advantage.
+
+OmnEmpiere ist tested on RHEL, AWS (works well on EC2 small RHEL, but swapping should be enabled (2GB) ), MACOS X. It should work on Windows Server but is not tested.
+
+OmniChannel prodcuts require some preparation work to ensure the configuration of the channels is correct. A setup for small - medium installtion without book keeping in Idempiere should take two to three days.
+
+Installation:
+=============
+
+Prepare Image:
+
+Prerequisits:
+1 Java Version 7 (Oracle version required, OpenJDK does not support required encryption module) 
+2 Apache Maven
+3 Apache ServiceMIX (min 5.6, 6.0 recommended). Standard Path: {your path}/omnEmpiere/apache-servicemix-6.0.0
+4 Java libraries jsoup (tested 1.8.3) and commons-io (tested 2.4)
+5 Idempiere V3.1 or V4.1 Standard Path omnEmpiere/idempiere-server
+6 Php v5.6+ including support for PGSQL and STOMP (Strongly recommended PHP7 + Stomp )
+7 copy the scripts into omnEmpiere/scripts
+8 copy configfiles into omnEmpiere/etc
+
+
+Supprted Channels: Magento  V2.x.x , EBAY (several countries tested), Amazon(in testing), Google Shooping (in testing)
+
+
+Prepare Apche ServiceMix:
+
+-add stomp support to activemq:
+
+    add  <transportConnector name="stomp" uri="stomp://0.0.0.0:61613"/>
+    to ../etc/activemq.xml
+
+-Check storage requirements of ActiveMQ, lower if required (i.e for AWS free tier)
+ 
+-add jsoup-1.8.3.jar and commons-io-2.4.jar in deploy folder of servicemix
+
+-Start servicemix 
+
+-access console (servicemixhome/bin/client)
+
+-optional: feature:install activemq-web-console   # Install web console, useful for debuging
+
+required: Mail, Stomp, jetty
+-feature:install camel-stomp    (Connect to Magento via Stomp)
+-feature:install camel-jetty    (WS support for amazon and EBAY)
+-feature:install camel-mail     (OmnEmpiere uses order mails by Magento and other channels to import orders)
+
+optional: change default user and password (requires re-compilation of omnempiere plugin)
+
+
+
+Prepare IdEmpiere:
+-install OmnEmpiere plugin (current version: cm.itkamer.omnempiere-integration_1.0.0.20160501.jar) using console
+-create your client (see IdEmpiere manual for process)
+-create attributes for CategoryIDs (CategoryID_EBAY, CategoryID_Amazon, CategoryID_3, CategoryID_4)
+-create atrribute set "OmniChannel Categories" and add the created Attributes
+-create the sales channel (Menu OmnEmpiere Sales Channel). It is recommended to use Magento, Ebay and Amazon as default (The Slaes Channel names are determing the Queue names in Apache ActiveMQ)
+Cretae or import warehouses, categories, products, price lists and Inventory
+
+To test, use the export to Sales channel in the OmnEmpiere Menu to export Prodcuts. 
+Check ActiveMQ web console. You should see the queues ProductsMagento, ProductsEbay, etc.
+
+Note that only products with prices (select the correct pricelist), Image URL and available in the selected warehouse are exported. The self service box must be checked
+
+Channel preperation:
+
+-Configure Parameters in configfiles copy correct configfiles in /omnEmpiere/etc
+
+Magento:
+
+Plugins:
+-place scripts/*.php into the root directory of your Magento installation 
+
+Prodcut Syncronisation:
+    set correct URI fro your magento installtion
+    -build the module: in  directory MagentoPushProducts/ use  mvn install
+    -cp target/MagentoPushProducts.xxx.jar into deply directory of Apache Servicemix
+    -check in Service Mix if the Module was installed correclty (Bundle list)
+    -Prepare the catgeories in Magento. The Catgeory names must be indentical to the names used in IdEmpiere
+    -Test pushing products as described above -> The products should appear in Magento, typically very quickly. It was tested with thousands of prodcuts which take above 1 min.
+
+-Order syncronisation: 
+    -Add the EmailTemplate.txt to your New Order Email Template. It contains the neccesary information as HTML comments. 
+    -Ensure a copy of your Email is send to an Email address of your choice.
+    -Modify MagentoGetOrders/src/main/java/net/omnempiere/MyTransform.java: Set the mapping of the delivery methods.
+    OmnEmpiere supports unlimted number of delivery methods, they need to be configured accordingly in Magento and Idempiere to ensure the customer will receive the ordered shipment. In addition the needs to be a prodcut with the sku delivery configured in Idempiere  (set minimum price to 0)
+   	    static String shipperconfigName = "Flat Rate - Fixed,UPS";    // The configured delivery methods in Magento 
+        static String shipperconfigID =	"1000000,1000001";            // The corresponding shipper IDs in Idempiere 
+        and set the right IMAPS address in MagentoGetOrders/src/main/resources/OSGI-INF/blueprint/blueprint.xml
+    -build  and deploy the module    
+
+EBAY:
+
+-Preparation: 
+-Get the required EBAY developer and APP certification as described 
+-In Idempiere set the CategoryID_EBAY attribute  (CategoryID attribute set) to the right ID for each product. Ensure EAN/UPS is set. 
+-Export to prodcuts in IdEmpiere, check ActiveMQ console and return codes in ServiceMix console. If everything was configured correctly the Prodcuts will be place in your EBAY store.
+
+Orders:
+Modify scripts/ebayRegisterService.xml and run EbayRegisterService.sh. This configures the Ebay Webservice to send the orders.
+
+Test Import Orders (see Manual). New customers are automatically created. 
+
+
+-Update Inventory: an Update Inventory method is used to syncronise the channels with new warehouse qunatities after an order. 
+    -Modify the UpdateInventory blueprint.xml and transformation methods reflecting your channels.
+    -Build and deploy the Module.
+    After Importing orders run the UpdateInventory task to syncronise prodcut qunatity in the warehouse over the channels. 
+    
+Roadmap: 
+-Modules for Magento 1.9 and Magento 2.0.4 using events instead of Emails. 
+-Amazon Module (currently being tested)
+-More Modules, i.e. Shopify
+-Creating your own module requires basically a transofrmation of the XML format. A manual to be released later.
+OmnEmpiere supports various interfaces like file (.ie ftp), IMAP, SOAP, REST, JMS using JSON, XML or plain txt.
+-A console configuration module to configure the channel scripts to avoid re-building (when we have time)
+

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<SetNotificationPreferencesRequest xmlns="urn:ebay:apis:eBLBaseComponents">
+<RequesterCredentials>
+</RequesterCredentials>
+<Version>931</Version>
+<ApplicationDeliveryPreferences>
+<AlertEmail></AlertEmail>
+<AlertEnable>Enable</AlertEnable>
+<ApplicationEnable>Enable</ApplicationEnable>
+<ApplicationURL></ApplicationURL>
+<DeviceType>Platform</DeviceType>
+</ApplicationDeliveryPreferences>
+<UserDeliveryPreferenceArray>
+<NotificationEnable><EventType>ItemSold</EventType>
+<EventEnable>Enable</EventEnable>
+</NotificationEnable>
+<NotificationEnable><EventType>FixedPriceTransaction</EventType>
+<EventEnable>Enable</EventEnable>
+</NotificationEnable>
+</UserDeliveryPreferenceArray>
+</SetNotificationPreferencesRequest>

@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<SetNotificationPreferencesRequest xmlns="urn:ebay:apis:eBLBaseComponents">
+  <!-- Call-specific Input Fields -->
+  <ApplicationDeliveryPreferences> ApplicationDeliveryPreferencesType
+    <AlertEmail> anyURI </AlertEmail>
+    <AlertEnable> EnableCodeType </AlertEnable>
+    <ApplicationEnable> EnableCodeType </ApplicationEnable>
+    <ApplicationURL> anyURI </ApplicationURL>
+    <DeliveryURLDetails> DeliveryURLDetailType
+      <DeliveryURL> anyURI </DeliveryURL>
+      <DeliveryURLName> string </DeliveryURLName>
+      <Status> EnableCodeType </Status>
+    </DeliveryURLDetails>
+    <!-- ... more DeliveryURLDetails nodes allowed here ... -->
+    <DeviceType> DeviceTypeCodeType </DeviceType>
+    <PayloadVersion> string </PayloadVersion>
+  </ApplicationDeliveryPreferences>
+  <DeliveryURLName> string </DeliveryURLName>
+  <EventProperty> NotificationEventPropertyType
+    <EventType> NotificationEventTypeCodeType </EventType>
+    <Name> NotificationEventPropertyNameCodeType </Name>
+    <Value> string </Value>
+  </EventProperty>
+  <!-- ... more EventProperty nodes allowed here ... -->
+  <UserData> NotificationUserDataType
+    <ExternalUserData> string </ExternalUserData>
+    <SMSSubscription> SMSSubscriptionType
+      <CarrierID> WirelessCarrierIDCodeType </CarrierID>
+      <ErrorCode> SMSSubscriptionErrorCodeCodeType </ErrorCode>
+      <ItemToUnsubscribe> ItemIDType (string) </ItemToUnsubscribe>
+      <SMSPhone> string </SMSPhone>
+      <UserStatus> SMSSubscriptionUserStatusCodeType </UserStatus>
+    </SMSSubscription>
+    <SummarySchedule> SummaryEventScheduleType
+      <EventType> NotificationEventTypeCodeType </EventType>
+      <Frequency> SummaryFrequencyCodeType </Frequency>
+      <SummaryPeriod> SummaryWindowPeriodCodeType </SummaryPeriod>
+    </SummarySchedule>
+    <!-- ... more SummarySchedule nodes allowed here ... -->
+  </UserData>
+  <UserDeliveryPreferenceArray> NotificationEnableArrayType
+    <NotificationEnable> NotificationEnableType
+      <EventEnable> EnableCodeType </EventEnable>
+      <EventType> NotificationEventTypeCodeType </EventType>
+    </NotificationEnable>
+    <!-- ... more NotificationEnable nodes allowed here ... -->
+  </UserDeliveryPreferenceArray>
+  <!-- Standard Input Fields -->
+  <ErrorLanguage> string </ErrorLanguage>
+  <MessageID> string </MessageID>
+  <Version> string </Version>
+  <WarningLevel> WarningLevelCodeType </WarningLevel>
+</SetNotificationPreferencesRequest>
