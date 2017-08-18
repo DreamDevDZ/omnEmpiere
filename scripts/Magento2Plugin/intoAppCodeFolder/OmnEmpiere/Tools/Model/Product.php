@@ -6,9 +6,9 @@ use \Symfony\Component\Console\Input\InputInterface;
 use \Symfony\Component\Console\Output\OutputInterface;
 use \Magento\Framework\ObjectManagerInterface;
 
-define('STOMP_URI','tcp://admin.bravostore.it:61613');
-define('STOMP_USER_NAME','smx');
-define('STOMP_PWD','smx');
+define('STOMP_URI','your URI');
+define('STOMP_USER_NAME','UserName');
+define('STOMP_PWD','password');
 define('ATTRIBUTE_NAME','Magento_ID');
 
 class Product extends Command

@@ -72,14 +72,13 @@ Channel preperation:
 
 -Configure Parameters in configfiles copy correct configfiles in /omnEmpiere/etc
 
-Magento:
+Magento2:
 
 Plugins:
--place scripts/*.php into the root directory of your Magento installation 
+- add correct URI of apache activemq server into Tools/Model(2) definitions
+- Install OmnEmpiere Plugin into your Magento2 setup
 
 Prodcut Syncronisation:
-    set correct URI fro your magento installtion
-    -build the module: in  directory MagentoPushProducts/ use  mvn install
     -cp target/MagentoPushProducts.xxx.jar into deply directory of Apache Servicemix
     -check in Service Mix if the Module was installed correclty (Bundle list)
     -Prepare the catgeories in Magento. The Catgeory names must be indentical to the names used in IdEmpiere
@@ -88,8 +87,8 @@ Prodcut Syncronisation:
 -Order syncronisation: 
     -Add the EmailTemplate.txt to your New Order Email Template. It contains the neccesary information as HTML comments. 
     -Ensure a copy of your Email is send to an Email address of your choice.
-    -Modify MagentoGetOrders/src/main/java/net/omnempiere/MyTransform.java: Set the mapping of the delivery methods.
-    OmnEmpiere supports unlimted number of delivery methods, they need to be configured accordingly in Magento and Idempiere to ensure the customer will receive the ordered shipment. In addition the needs to be a prodcut with the sku delivery configured in Idempiere  (set minimum price to 0)
+    -configure the magento.configure file
+    -OmnEmpiere supports unlimted number of delivery methods, they need to be configured accordingly in Magento and Idempiere to ensure the customer will receive the ordered shipment. In addition the needs to be a prodcut with the sku delivery configured in Idempiere  (set minimum price to 0)
    	    static String shipperconfigName = "Flat Rate - Fixed,UPS";    // The configured delivery methods in Magento 
         static String shipperconfigID =	"1000000,1000001";            // The corresponding shipper IDs in Idempiere 
         and set the right IMAPS address in MagentoGetOrders/src/main/resources/OSGI-INF/blueprint/blueprint.xml

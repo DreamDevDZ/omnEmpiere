@@ -8,9 +8,9 @@ use \Magento\Framework\ObjectManagerInterface;
 
 define('DS', DIRECTORY_SEPARATOR);
 
-define('STOMP_URI_2','tcp://admin.bravostore.it:61613');
-define('STOMP_USER_NAME_2','smx');
-define('STOMP_PWD_2','smx');
+define('STOMP_URI_2','URI');
+define('STOMP_USER_NAME_2','username');
+define('STOMP_PWD_2','password');
 define('ATTRIBUTE_NAME_2','Magento_ID');
 
 class Newitem extends Command
