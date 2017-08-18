@@ -22,53 +22,71 @@
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:schemaLocation="http://www.osgi.org/xmlns/blueprint/v1.0.0 http://www.osgi.org/xmlns/blueprint/v1.0.0/blueprint.xsd">
 
-    <camelContext xmlns="http://camel.apache.org/schema/blueprint">
-  <route>
-    <from uri="activemq:queue:ProductsEbay?username=smx&amp;password=smx"/>
-    <split streaming="true">
-      <tokenize token="Product" xml="true"></tokenize>
-      <bean ref="myTransform" method="transform"/>
-      <setHeader headerName="Content-Type" inheritErrorHandler="true" id="setHeader">
-        <constant>text/xml</constant>
-      </setHeader>
-      <setHeader headerName="CamelHttpMethod" inheritErrorHandler="true" id="setHeader">
-        <constant>POST</constant>
-      </setHeader>
-      <setHeader headerName="X-EBAY-API-COMPATIBILITY-LEVEL" inheritErrorHandler="true" id="setHeader">
-        <constant>931</constant>
-      </setHeader>
-      <setHeader headerName="X-EBAY-API-APP-NAME" inheritErrorHandler="true" id="setHeader">
-        <constant>API App Name (see EBAY Developer Documentation</constant>
-      </setHeader>
-      <setHeader headerName="X-EBAY-API-CERT-NAME" inheritErrorHandler="true" id="setHeader">
-        <constant>API Cert Name</constant>
-      </setHeader>
-      <setHeader headerName="X-EBAY-API-DEV-NAME" inheritErrorHandler="true" id="setHeader">
-        <constant>API Developer Name</constant>
-      </setHeader>
-      <setHeader headerName="X-EBAY-API-CALL-NAME" inheritErrorHandler="true" id="setHeader">
-        <constant>AddItem</constant>
-      </setHeader>
-      <setHeader headerName="X-EBAY-API-SITEID" inheritErrorHandler="true" id="setHeader">
-        <constant>3</constant>
-      </setHeader>
-      <to uri="https://api.sandbox.ebay.com/ws/api.dll"/>
-<!--   Use appropriate URI here, sandbox for testing  -->
-      <bean ref="myTransform" method="getServerResponse"/>
-      <to uri="log:EbayPushProducts?level=INFO&amp;ShowHeaders=true&amp;ShowBody=true"/>
-    </split>
-  </route>
+<camelContext xmlns="http://camel.apache.org/schema/blueprint">
+    
+    <!-- Start the route definiton -->    
+    <route>
+        <from uri="activemq:queue:ProductsEbay?username=smx&amp;password=smx"/>
+           <!-- copy all errors from Ebay to error queue -->
+        <onException>
+            <exception>net.omnempiere.EbayPushProducts.EbayException</exception>
+            <continued>
+                <constant>true</constant>
+            </continued>
+            <bean ref="createEbayXML" method="handleException" />
+            <removeHeaders pattern="*" />
+            <to uri="activemq:queue:errors?username=smx&amp;password=smx" />
+        </onException>
+        <!-- Split the message per product -->
+        <split streaming="true">
+        <tokenize token="Product" xml="true"></tokenize>
+            <bean ref="createEbayXML" method="transform"/>
+            <!-- if attribute EBAY_ID is empty, an empty body is returned, no message is written -->
+            <filter>
+            <simple>${in.body.trim()} != ''</simple>
+                <setHeader headerName="Content-Type" inheritErrorHandler="true" id="setHeader">
+                    <constant>text/xml</constant>
+                </setHeader>
+                <setHeader headerName="CamelHttpMethod" inheritErrorHandler="true" id="setHeader">
+                    <constant>POST</constant>
+                </setHeader>
+                <setHeader headerName="X-EBAY-API-COMPATIBILITY-LEVEL" inheritErrorHandler="true" id="setHeader">
+                    <constant>983</constant>
+                </setHeader>
+                <setHeader headerName="X-EBAY-API-APP-NAME" inheritErrorHandler="true" id="setHeader">
+                    <constant>AnubesIT-7cd8-44f8-86a5-6e345c12b1ed</constant>
+                </setHeader>
+                <setHeader headerName="X-EBAY-API-CERT-NAME" inheritErrorHandler="true" id="setHeader">
+                    <constant>f3559bf9-8e29-404e-a10f-fcd4d19b099e</constant>
+                </setHeader>
+                <setHeader headerName="X-EBAY-API-DEV-NAME" inheritErrorHandler="true" id="setHeader">
+                    <constant>a0243766-3f86-4f7f-bb0e-2dc447edff35</constant>
+                </setHeader>
+                <setHeader headerName="X-EBAY-API-CALL-NAME" inheritErrorHandler="true" id="setHeader">
+                    <constant>AddItem</constant>
+                </setHeader>
+                <setHeader headerName="X-EBAY-API-SITEID" inheritErrorHandler="true" id="setHeader">
+                    <constant>101</constant>
+                </setHeader>
+                
+                <to uri="https://api.ebay.com/ws/api.dll"/>
+                <bean ref="createEbayXML" method="getServerResponse"/>        
+            </filter>    
+            <to uri="log:EbayPushProducts?level=INFO&amp;ShowHeaders=true&amp;ShowBody=true"/>
+        </split>
+    </route>
 </camelContext>
 
    
 
-    <cm:property-placeholder persistent-id="net.omnempiere.EbayPushProducts.MyTransform">
+    <cm:property-placeholder persistent-id="net.omnempiere.EbayPushProducts.CreateEbayXML  {
+">
         <cm:default-properties>
             <cm:property name="prefix" value="OmnEmpiereEbayConnector"/>
         </cm:default-properties>
     </cm:property-placeholder>
 
-    <bean id="myTransform" class="net.omnempiere.EbayPushProducts.MyTransform">
+    <bean id="createEbayXML" class="net.omnempiere.EbayPushProducts.CreateEbayXML">
         <property name="prefix" value="${prefix}" />
     </bean>
 

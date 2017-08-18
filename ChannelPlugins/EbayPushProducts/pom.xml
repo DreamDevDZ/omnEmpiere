@@ -7,13 +7,15 @@
     <bundle.symbolicName>net.omnempiere.EbayPushProducts-bundle</bundle.symbolicName>
     <bundle.namespace>net.omnempiere.EbayPushProducts</bundle.namespace>
     <commons.log>1.1</commons.log>
+    <maven.compiler.source>1.8</maven.compiler.source>
+    <maven.compiler.target>1.8</maven.compiler.target>
   </properties>
 
     <modelVersion>4.0.0</modelVersion>
     
     <groupId>net.omnempiere.EbayPushProducts</groupId>
     <artifactId>EbayPushProducts</artifactId>
-    <version>0.3</version>
+    <version>0.91</version>
      <name>${bundle.symbolicName} [${bundle.namespace}]</name>
     <description>OmnEmpiere Ebay Products</description>
     <packaging>bundle</packaging>

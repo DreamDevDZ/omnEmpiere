@@ -23,10 +23,11 @@
     xsi:schemaLocation="http://www.osgi.org/xmlns/blueprint/v1.0.0 http://www.osgi.org/xmlns/blueprint/v1.0.0/blueprint.xsd">
 
     <camelContext xmlns="http://camel.apache.org/schema/blueprint">
+        <!-- <propertyPlaceholder id="properties" location="{{sysenv.OMNEMPIERE_HOME}}/etc/magento.properties"/> -->
         <route>
             
-            <from uri="activemq:queue:ProductsMagento?username=smx&amp;password=smx"/>
-            
+        <from uri="activemq:queue:ProductsMagento?username=smx&amp;password=smx"/>
+        <!-- <from uri="activemq:queue:ProductsMagento?username={{properties:activemq_user}}&amp;password={{properties:activemq_pwd}}"/>  --> 
             
               <!-- Split XML at the product tag -->
             <split streaming="true">
@@ -36,19 +37,20 @@
                 
                 <to uri="log:MagentoPushProduct" />
              </split>    
-            <bean ref="addProducts" method="callMagentoReIndex"/>
+        <!--    <bean ref="addProducts" method="callMagentoReIndex"/>  -->
+        <!--    Magento 2 ReIndex is a cron job no need to call manually -->
         </route>
     </camelContext>
 
    
 
-    <cm:property-placeholder persistent-id="net.omnempiere.MagentoPushProducts.addProducts">
+    <cm:property-placeholder persistent-id="com.anubesit.MagentoPushProducts.addProducts">
         <cm:default-properties>
             <cm:property name="prefix" value="OmnEmpiereMagentoConnector"/>
         </cm:default-properties>
     </cm:property-placeholder>
 
-    <bean id="addProducts" class="net.omnempiere.MagentoPushProducts.addProducts">
+    <bean id="addProducts" class="com.anubesit.MagentoPushProducts.addProducts">
         <property name="prefix" value="${prefix}" />
     </bean>
 

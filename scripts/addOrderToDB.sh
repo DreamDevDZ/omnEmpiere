@@ -1,10 +1,5 @@
 #!/usr/bin/php
 <?php
-
-//This script bypasses incompatibilities of Servicemix with the the Postgres java API
-// It reads the SQL command from JMS and excutes it. Please set the DB connection strings
-
-
     class addOrderToDB {
     
         public $message = array();
@@ -20,8 +15,8 @@
         
         $queue  = '/queue/SqlStatements';
         $uri = 'tcp://localhost:61613';
-        $username = 'xxxxx';   // the DB username
-        $passwd = 'xxxxx';    // the DB password
+        $username = 'xxxxx';
+        $passwd = 'xxxxx';
         
         
 

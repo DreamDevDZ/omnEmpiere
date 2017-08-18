@@ -19,12 +19,14 @@ import java.util.logging.Logger;
 import java.io.StringReader;
 import java.io.InputStream;
 import java.io.*;
+import java.util.Properties;
 import java.util.logging.Level;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
+import org.apache.camel.Exchange;
 import org.apache.commons.io.IOUtils;
 import org.w3c.dom.Document;
 
@@ -39,122 +41,162 @@ import org.xml.sax.SAXException;
 public class updateInv {
 
     
-    private static final transient Logger logger = Logger.getLogger(updateInv.class.getName());
+    private static final transient Logger LOGGER = Logger.getLogger(updateInv.class.getName());
     private boolean verbose = true;
     private String prefix = "updateInv";
-    private static final String updateInvURI="Your Magento URI/OmnEmpiereUpdateInv.php";
-    private static final String callReindexURI="Your Magento URI/OmnEmpiereCallReIndex.php";
-    private static final String ebaytauken="You EBAY token"; // Insert Your EBAY token here
     
-/***********************************************/    
+    
+/***********************************************/
 /** Method to call the Magento Php scripts    **/
-/*** @param body message body                 **/ 
-    
+/**                   **/
+/**
+* @param body              *************************/
     
     public void callMagentoUpdateInv(String body) {
+     
     	
-    	
-    	
-	logger.log(Level.INFO, "Working Directory = {0}", System.getProperty("user.dir"));
-	try {       
-		Process p = new ProcessBuilder("/usr/bin/curl","--fail", "--silent", "--show-error",updateInvURI).start();
-		p.waitFor();
-		BufferedReader error = new BufferedReader(new InputStreamReader(p.getErrorStream()));
-		BufferedReader output =  new BufferedReader(new InputStreamReader(p.getInputStream()));
+    String updateInvURI="";
+    
+    Properties prop = new Properties();
+    InputStream propsInput;
+    String OmnEmpiere_Home = System.getenv("OMNEMPIERE_HOME");
+    try {   propsInput = new FileInputStream(OmnEmpiere_Home+"/etc/updateInventory.properties");
+		// load a properties file
+		prop.load(propsInput);
+                updateInvURI=prop.getProperty("updateInvURI");
+        } catch (IOException e) {
+                    LOGGER.log(Level.SEVERE, "Read Properties failed: {0}", e.getMessage()); 
+                    }
+    
+    try {       
+        Process p = new ProcessBuilder("/usr/bin/curl","--fail", "--silent", "--show-error",updateInvURI).start();
+	p.waitFor();
+	BufferedReader error = new BufferedReader(new InputStreamReader(p.getErrorStream()));
+	BufferedReader output =  new BufferedReader(new InputStreamReader(p.getInputStream()));
 		
-	    logger.severe(IOUtils.toString(error));
-	    logger.info(IOUtils.toString(output));
+	LOGGER.severe(IOUtils.toString(error));
+	//LOGGER.info(IOUtils.toString(output));
 	    } catch (IOException e) {
-              logger.log(Level.SEVERE, "call failed: {0}", e.getMessage()); 
+              LOGGER.log(Level.SEVERE, "call failed: {0}", e.getMessage()); 
             } catch (InterruptedException e) {       
-              logger.log(Level.SEVERE, "call failed: {0}", e.getMessage());
+              LOGGER.log(Level.SEVERE, "call failed: {0}", e.getMessage());
         }       
-	} 
-    
-    public void callMagentoReIndex(String body) {
-	logger.info("This is reindexing");
-        try {
-        	Process p = new ProcessBuilder("/usr/bin/curl","--fail", "--silent", "--show-error",callReindexURI).start();
-        	BufferedReader error = new BufferedReader(new InputStreamReader(p.getErrorStream()));
-        	BufferedReader output =  new BufferedReader(new InputStreamReader(p.getInputStream()));
-		
-        	logger.severe(IOUtils.toString(error));
-        	logger.info(IOUtils.toString(output));
-        	} catch (IOException e) {
-    logger.log(Level.SEVERE, "call failed: {0}", e.getMessage()); }
-      }
-
-    
+    }     
     
   /***********************************/  
   /** Transform body for Ebay      **/
+  /** @param body message body     **/
+  /**   * @return transformed body **/
   /**
-     * @param body message body   *   
-     * @return transformed body
-     *******************************/   
+     * @param body*
+     * @return *******************************/
   
-    @SuppressWarnings("CallToPrintStackTrace")
+
     public String ebayTransform(String body) {
 
     	/** Initialize the variable */    	
     	    	
-    	 	    String answer;
-     
+    	Properties prop = new Properties();
+        InputStream propsInput;
+        String OmnEmpiere_Home = System.getenv("OMNEMPIERE_HOME");
+        String ebayToken="";
+        
+         //LOGGER.log(Level.INFO,"Ebay HTML Body {0}",body);
+        
+        String answer;
+        String minQuantity="10";
+        String ebayQuantity="5";
+        
+        // Get properties
+        try {   propsInput = new FileInputStream(OmnEmpiere_Home+"/etc/updateInventory.properties");
+		// load a properties file
+		prop.load(propsInput);
+                ebayToken=prop.getProperty("ebayToken");
+                minQuantity=prop.getProperty("minQuantity");
+                ebayQuantity=prop.getProperty("ebayQuantity");
+        } catch (IOException e) {
+                    LOGGER.log(Level.SEVERE, "Read Properties failed: {0}", e.getMessage()); 
+                    }
+        // Build Ebay update Inventory command
+    	answer="<?xml version=\"1.0\" encoding=\"utf-8\"?><ReviseInventoryStatusRequest xmlns=\"urn:ebay:apis:eBLBaseComponents\">";
+        answer+="<RequesterCredentials><eBayAuthToken>"+ ebayToken +"</eBayAuthToken></RequesterCredentials>";
     	        
-    	        answer="<?xml version=\"1.0\" encoding=\"utf-8\"?><ReviseInventoryStatusRequest xmlns=\"urn:ebay:apis:eBLBaseComponents\">";
-                answer+="<RequesterCredentials><eBayAuthToken>"+ ebaytauken +"</eBayAuthToken></RequesterCredentials>";
-    	        
-    	        /** extract information from XML message */
+    	/** extract information from XML message */
 
-    	      try{
-    	        DocumentBuilder db = DocumentBuilderFactory.newInstance().newDocumentBuilder();
-    	        InputSource temp = new InputSource();
-    	        body = body.trim();
-    	        temp.setCharacterStream(new StringReader(body));
+    	try{
+    	    DocumentBuilder db = DocumentBuilderFactory.newInstance().newDocumentBuilder();
+    	    InputSource temp = new InputSource();
+    	    body = body.trim();
+    	    temp.setCharacterStream(new StringReader(body));
 
-    	        Document input = db.parse(temp);
-    	          
-    	      
-    	        NodeList skus  = input.getElementsByTagName("SKU"); 
-    	        NodeList quantities = input.getElementsByTagName("QtyOnHand");
-    	        
-    			int i = 0;
-    			int length = skus.getLength();
-    			while (i < length) {
-    	        
-                            answer+="<InventoryStatus>"; 
-                            answer+= "<Quantity>" + quantities.item(i) +"</Quantity>";
-                            answer+= "<SKU>" + skus.item(i) + "</SKU>";
-                            answer+="</InventoryStatus>";
-                            i++;
-    			}
-                 answer+="</ReviseInventoryStatusRequest>";       
+    	    Document input = db.parse(temp);  
+    	    NodeList skus  = input.getElementsByTagName("SKU"); 
+    	    NodeList quantities = input.getElementsByTagName("QtyOnHand");
+            NodeList categories= input.getElementsByTagName("Ebay_ID");
+              
+            int i = 0;
+            int itemsynced = 0;
+            String quantity;
+            int length = skus.getLength();
+            while (i < length) {
+                if(!("".equals(categories.item(i).getTextContent()))) {
+                    
+                    // Check for min qunatity and set qunatity
+                    String quantityRaw=quantities.item(i).getTextContent(); 
+                        if(Integer.parseInt(quantityRaw)<Integer.parseInt(minQuantity)) {
+                            quantity="0"; }
+                        else {
+                            quantity=ebayQuantity;
+                        }
+                    // Build the string    
+                    answer+="<InventoryStatus>"; 
+                    answer+= "<Quantity>" + quantity +"</Quantity>";
+                    answer+= "<ItemID>" + categories.item(i).getTextContent() +"</ItemID>";
+                    answer+= "<SKU>" + skus.item(i).getTextContent() + "</SKU>";
+                    answer+="</InventoryStatus>";
+                    itemsynced++;
+                }
+                i++;
+            }
+            answer+="</ReviseInventoryStatusRequest>";  
+            if(itemsynced==0) { 
+                answer="";
+                }    	
     	  
     	    } catch (ParserConfigurationException e) {
-                e.printStackTrace();
+                LOGGER.log(Level.SEVERE,"Error reading activemq {0}",e);
     	    } catch (SAXException e) {
-               e.printStackTrace();
-          } catch (IOException e) {
-               e.printStackTrace();
-        }
+               LOGGER.log(Level.SEVERE,"Error reading activemq {0}",e);
+            } catch (IOException e) {
+               LOGGER.log(Level.SEVERE,"Error reading activemq {0}",e);
+            }
   	        
-    	        logger.log(Level.INFO, ">>>> {0}", answer);
-    	        return answer;
-    	        }
+    	    //LOGGER.log(Level.INFO, "The Ebay reviseItemRequest {0}", answer);
+    	    return answer;
+    }
     	  
 
-    	 public String getServerResponse(InputStream responseStream) {
-    		String response="";
-    		try {
-    			response=IOUtils.toString(responseStream, "UTF-8");
-    		} catch(java.io.IOException e) {
-    			e.printStackTrace(); }
-    		return response;
-    		} 
+    public String getServerResponse(InputStream responseStream) throws EbayException {
+	String response="";
+	try {
+		response=IOUtils.toString(responseStream, "UTF-8");
+	} catch(java.io.IOException e) {
+		LOGGER.log(Level.SEVERE, "Exception while getting server response: {0}", e.getMessage());
+        }
+        if(response.contains("<SeverityCode>Error</SeverityCode>")) { 
+            throw new EbayException(response,new Throwable(response));
+        } 
+        return response;
+    }
     
     
+    public String handleException(Exchange exchange) throws Exception {
+        // the caused by exception is stored in a property on the exchange
+        Throwable caused = exchange.getProperty(Exchange.EXCEPTION_CAUGHT, Throwable.class); 
+        return caused.getMessage();
+    }  
     
-  public boolean isVerbose() {
+    public boolean isVerbose() {
         return verbose;
     }
 

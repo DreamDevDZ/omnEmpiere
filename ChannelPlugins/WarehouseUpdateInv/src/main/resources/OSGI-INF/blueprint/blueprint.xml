@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xml>
 <!--
 
  /******************************************************************************
@@ -15,79 +16,97 @@
  * 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.                     *
  *****************************************************************************/
 
-Please set Variables for EBAY API accordingly (See EBAY Developer documentation
-
-
 -->
-
-
-<blueprint
-    xmlns="http://www.osgi.org/xmlns/blueprint/v1.0.0"
+<blueprint xmlns="https://www.osgi.org/xmlns/blueprint/v1.0.0"
     xmlns:cm="http://aries.apache.org/blueprint/xmlns/blueprint-cm/v1.0.0"
-    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-    xsi:schemaLocation="http://www.osgi.org/xmlns/blueprint/v1.0.0 http://www.osgi.org/xmlns/blueprint/v1.0.0/blueprint.xsd">
-
-    <camelContext xmlns="http://camel.apache.org/schema/blueprint">
-  <route streamCache="true">
-    <from uri="activemq:queue:InvUpdate?username=smx&amp;password=smx"/>
-    <filter>
-      <xpath>/InvUpdateDeliveryWarehouse</xpath>
-      <multicast parallelProcessing="true">
-        <to uri="direct:Magento"/>
-        <to uri="direct:Ebay"/>
-<!--        <to uri="direct:Amazon"/>   -->
-      </multicast>
-    </filter>
-  </route>
-  <route streamCache="true">
-    <from uri="direct:Magento"/>
-    <to uri="activemq:queue:UpdateMage?username=smx&amp;password=smx"/>
-    <bean ref="updateInv" method="callMagentoUpdateInv"/>
-    <bean ref="updateInv" method="callMagentoReIndex"/>
-  </route>
-  <route streamCache="true">
-    <from uri="direct:Ebay"/>
-    <bean ref="updateInv" method="ebayTransform"/>
-    <setHeader headerName="Content-Type" inheritErrorHandler="true" id="setHeader">
-      <constant>text/xml</constant>
-    </setHeader>
-    <setHeader headerName="CamelHttpMethod" inheritErrorHandler="true" id="setHeader">
-      <constant>POST</constant>
-    </setHeader>
-    <setHeader headerName="X-EBAY-API-COMPATIBILITY-LEVEL" inheritErrorHandler="true" id="setHeader">
-      <constant>931</constant>
-    </setHeader>
-    <setHeader headerName="X-EBAY-API-APP-NAME" inheritErrorHandler="true" id="setHeader">
-      <constant>Your App Name</constant>
-    </setHeader>
-    <setHeader headerName="X-EBAY-API-CERT-NAME" inheritErrorHandler="true" id="setHeader">
-      <constant>Your certification name</constant>
-    </setHeader>
-    <setHeader headerName="X-EBAY-API-DEV-NAME" inheritErrorHandler="true" id="setHeader">
-      <constant>Your developer name</constant>
-    </setHeader>
-    <setHeader headerName="X-EBAY-API-CALL-NAME" inheritErrorHandler="true" id="setHeader">
-      <constant>ReviseInventoryStatus</constant>
-    </setHeader>
-    <setHeader headerName="X-EBAY-API-SITEID" inheritErrorHandler="true" id="setHeader">
-      <constant>3</constant>
-    </setHeader>
-    <to uri="https://api.sandbox.ebay.com/ws/api.dll"/>
-    <bean ref="updateInv" method="getServerResponse"/>
-    <to uri="log:EbayUpdateInv?level=INFO&amp;ShowHeaders=true&amp;ShowBody=true"/>
-  </route>
-</camelContext>
-
-   
-
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.osgi.org/xmlns/blueprint/v1.0.0 http://www.osgi.org/xmlns/blueprint/v1.0.0/blueprint.xsd">
+    <camelContext id="camelContext-a8416439-a1a6-4fb1-a88e-000bd8ed1ccd" xmlns="http://camel.apache.org/schema/blueprint">
+        <route id="_route1" streamCache="true">
+            <from id="_from1" uri="activemq:queue:InvUpdate?username=smx&amp;password=smx"/>
+            <choice id="_choice1">
+                <when id="_when1">
+                    <!-- check for the Warehouse Name in the message, handle if the correct choice. Replace [WarehouseName] with the right -->
+                    <xpath>InvUpdateODExternal</xpath>
+                    <multicast id="_multicast1" parallelProcessing="true">
+                        <to id="_to1" uri="direct:Magento"/>
+                        <to id="_to2" uri="direct:Ebay"/>
+                        <!--            <to uri="direct:Amazon"/>   -->
+                    </multicast>
+                </when>
+                <!-- If not handled, return to queue -->
+                <otherwise id="_otherwise1">
+                    <to id="_to3" uri="activemq:queue:InvUpdate?username=smx&amp;password=smx"/>
+                </otherwise>
+            </choice>
+        </route>
+        <route id="_route2" streamCache="true">
+            <from id="_from2" uri="direct:Magento"/>
+            <to id="_to4" uri="activemq:queue:UpdateMage?username=smx&amp;password=smx"/>
+            <bean id="_bean1" method="callMagentoUpdateInv" ref="updateInv"/>
+        </route>
+        <route id="_route3" streamCache="true">
+            <from id="_from3" uri="direct:Ebay"/>
+            <onException id="_onException1">
+                <exception>net.omnempiere.WarehouseUpdateInv.EbayException</exception>
+                <continued>
+                    <constant>true</constant>
+                </continued>
+                <bean id="_bean2" method="handleException" ref="updateInv"/>
+                <removeHeaders id="_removeHeaders1" pattern="*"/>
+                <to id="_to5" uri="activemq:queue:errors?username=smx&amp;password=smx"/>
+            </onException>
+            <bean id="_bean3" method="ebayTransform" ref="updateInv"/>
+            <choice id="_choice2">
+                <when id="_when2">
+                    <simple>${body} == ""</simple>
+                    <stop id="_stop1"/>
+                </when>
+                <otherwise id="_otherwise2">
+                    <setHeader headerName="Content-Type" id="setHeader" inheritErrorHandler="true">
+                        <constant>text/xml</constant>
+                    </setHeader>
+                    <setHeader headerName="CamelHttpMethod"
+                        id="setHeader" inheritErrorHandler="true">
+                        <constant>POST</constant>
+                    </setHeader>
+                    <setHeader
+                        headerName="X-EBAY-API-COMPATIBILITY-LEVEL"
+                        id="setHeader" inheritErrorHandler="true">
+                        <constant>983</constant>
+                    </setHeader>
+                    <setHeader headerName="X-EBAY-API-APP-NAME"
+                        id="setHeader" inheritErrorHandler="true">
+                        <constant>AnubesIT-769a-4b06-ad61-5b898a6371eb</constant>
+                    </setHeader>
+                    <setHeader headerName="X-EBAY-API-CERT-NAME"
+                        id="setHeader" inheritErrorHandler="true">
+                        <constant>5daee421-7829-462f-93e4-fc7e91d0d415</constant>
+                    </setHeader>
+                    <setHeader headerName="X-EBAY-API-DEV-NAME"
+                        id="setHeader" inheritErrorHandler="true">
+                        <constant>a0243766-3f86-4f7f-bb0e-2dc447edff35</constant>
+                    </setHeader>
+                    <setHeader headerName="X-EBAY-API-CALL-NAME"
+                        id="setHeader" inheritErrorHandler="true">
+                        <constant>ReviseInventoryStatus</constant>
+                    </setHeader>
+                    <setHeader headerName="X-EBAY-API-SITEID"
+                        id="setHeader" inheritErrorHandler="true">
+                        <constant>101</constant>
+                    </setHeader>
+                    <to id="_to6" uri="https://api.ebay.com/ws/api.dll"/>
+                    <bean id="_bean4" method="getServerResponse" ref="updateInv"/>
+                    <to id="_to7" uri="log:EbayUpdateInv?level=INFO&amp;ShowHeaders=true&amp;ShowBody=true"/>
+                </otherwise>
+            </choice>
+        </route>
+    </camelContext>
     <cm:property-placeholder persistent-id="net.omnempiere.WarehouseupdateInv">
         <cm:default-properties>
             <cm:property name="prefix" value="OmnEmpiereWarehouseUpdate"/>
         </cm:default-properties>
     </cm:property-placeholder>
-
-    <bean id="updateInv" class="net.omnempiere.WarehouseUpdateInv.updateInv">
-        <property name="prefix" value="${prefix}" />
+    <bean class="net.omnempiere.WarehouseUpdateInv.updateInv" id="updateInv">
+        <property name="prefix" value="${prefix}"/>
     </bean>
-
 </blueprint>

@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.logging.Level;
 	
@@ -39,7 +40,7 @@ import org.jsoup.select.Elements;
 public class MyTransform {
 
 	/*
-	 * The DB connection to IdEmpiere static String db_URI=
+	 * The DB connection to IdEmpiere static String db_URI= 
 	 * "jdbc:postgresql://omnempiere.cvlniysmijeg.eu-west-1.rds.amazonaws.com:5432/idempiere"
 	 * ; static String db_User="adempiere"; static String
 	 * db_PWD="xxxxxxx";
@@ -54,11 +55,12 @@ public class MyTransform {
 	 * product list
 	 */
 	
-	static String orderValues = "i_order_id,ad_client_id,ad_org_id,created,m_warehouse_id,m_pricelist_id,bpartnervalue,address1,address2,city,postal,countrycode,email,c_doctype_id,doctypename,taxamt,c_currency_id,m_shipper_id";
+	static String orderValues = "i_order_id,ad_client_id,ad_org_id,created,m_warehouse_id,m_pricelist_id,bpartnervalue,name,address1,address2,city,postal,countrycode,email,c_doctype_id,doctypename,taxamt,c_currency_id,m_shipper_id,c_ordersourcevalue";
     
 	/** List of configured Shippers in Magento and IdEmpiere, for shipper_id, check table m_shipper_id in db **/
-	static String shipperconfigName = "Flat Rate - Fixed,UPS";    // The configured delivery methods in Magento 
-        static String shipperconfigID =	"1000000,1000001";            // The corresponding shipper IDs in Idempiere 
+	final static String shipperconfigName = "Flat Rate - Fixed,UPS";
+        final static String shipperconfigID =	"1000000,1000001";
+        final static String DEFAULT_COUNTRY="US";
     
 	/**
 	 * The HashMap orderEntries[orderValues,OrderEntry], ie.
@@ -74,6 +76,7 @@ public class MyTransform {
 	List<String> qtyordered = new ArrayList<String>();
 	List<String> priceactual = new ArrayList<String>();
 	String shippingCosts;
+        String documentno;
 
 	/** The country map **/
 	
@@ -83,8 +86,8 @@ public class MyTransform {
 	
     String getShipperID(String shipperName) {
     	
-    	List<String> shipperNameList = new ArrayList<String>();
-    	List<String> shipperIDList = new ArrayList<String>();
+    	List<String> shipperNameList;
+    	List<String> shipperIDList;
     	Map<String, String> shipperMap = new HashMap<String, String>();
     	String result;
     	
@@ -106,7 +109,7 @@ public class MyTransform {
 	String getCode(String country){
 		 String countryFound = map.get(country);
 	     if(countryFound==null){
-	             countryFound="UK";
+	             countryFound=DEFAULT_COUNTRY;
 	     }
 	     return countryFound;
 		
@@ -365,6 +368,24 @@ public class MyTransform {
 
     }
 	
+        /** create Business Partner Import **/
+        
+        private String createSQLBP() {
+            
+            String sqlStatement;
+            
+            String sql = "INSERT INTO adempiere.i_bpartner (i_bpartner_id,ad_client_id,ad_org_id,created,value,name,address1,address2,city,postal,countrycode,phone,email,iscustomer) VALUES(";
+            sql+="\'" + orderEntries.get("i_order_id") + "\',\'" + orderEntries.get("ad_client_id") + "\',\'" + orderEntries.get("ad_org_id")+ "\',\'" + orderEntries.get("created") + "\',\'" 
+                      + orderEntries.get("bpartnervalue") + "\',\'" + orderEntries.get("name") + "\',\'" + orderEntries.get("address1")
+                      + "\',\'" + orderEntries.get("address2") + "\',\'" + orderEntries.get("city") + "\',\'" + orderEntries.get("postal") + "\',\'" +
+                        orderEntries.get("countrycode") + "\',\'" + orderEntries.get("phone") + "\',\'" + orderEntries.get("email") + "\',\'Y\')";
+                    
+            sqlStatement = "<sqlStatement>" + sql + "</sqlStatement>";
+
+            return sqlStatement;
+        }
+        
+        
 	/** create the SQL statement, one line per product */
 
 	private String createSQL(int orderline) {
@@ -373,14 +394,15 @@ public class MyTransform {
 
 		/** create the sql command */
 
-		String sql = "INSERT INTO adempiere.i_order (i_order_id,ad_client_id,ad_org_id,created,m_warehouse_id,m_pricelist_id,bpartnervalue,address1,address2,city,postal,countrycode,email,c_doctype_id,doctypename,taxamt,c_currency_id,m_shipper_id,freightamt,productvalue,sku,qtyordered,priceactual) VALUES(";
+		String sql = "INSERT INTO adempiere.i_order (i_order_id,ad_client_id,ad_org_id,created,m_warehouse_id,m_pricelist_id,bpartnervalue,name,address1,address2,city,postal,countrycode,email,c_doctype_id,doctypename,taxamt,c_currency_id,m_shipper_id,c_ordersourcevalue,description,freightamt,productvalue,sku,qtyordered,priceactual) VALUES(";
 
 		/** add the entries from the hashMap */
 		for (String key : xmlEntries) {
 			sql += "\'"+ orderEntries.get(key) + "\',";
 		}
 		/** and finally the product for each ordered product */
-		sql += "\'" + shippingCosts + "\'," + "\'" + productvalue.get(orderline) + "\',"
+                sql += "\'" + documentno + "\',";
+		sql += "\'" + shippingCosts + "\'," + "\'" + sku.get(orderline) + "\',"
 				+ "\'" + sku.get(orderline) + "\',"  
 				+ "\'" + qtyordered.get(orderline) + "\'," + "\'" + priceactual.get(orderline)
 				+ "\')";
@@ -433,14 +455,17 @@ public class MyTransform {
 			qtyordered.add(productQuantity.text());
 
 			Element productPrice = products.select("span.price").get(0);
-			priceactual.add(productPrice.text().replaceAll("[^\\.0123456789]",
-					""));
+			String productPrice_tmp = productPrice.text().replaceAll("[^\\.,0123456789]","");
+                        /** For international number formats with , instead of . **/
+                        priceactual.add(productPrice_tmp.replaceAll(",","."));
 		}
 
 		Elements tableShipCost = doc.select("tr.shipping");
 
 		Element orderShipCost = tableShipCost.get(0);
-		shippingCosts = orderShipCost.text().replaceAll("[^\\.0123456789]", "");
+		String orderShipCost_tmp = orderShipCost.text().replaceAll("[^\\.,0123456789]", "");
+                /** For international number formats with , instead of . **/
+		shippingCosts = orderShipCost_tmp.replaceAll(",", ".");
                 productvalue.add("Delivery");
                 sku.add("delivery");
                 qtyordered.add("1");
@@ -455,9 +480,9 @@ public class MyTransform {
                 
 		/* Reset global Variables as beans are not always new objects in servicemix */
 		productvalue.clear();
-        sku.clear();
-        qtyordered.clear();
-        priceactual.clear();        
+                sku.clear();
+                qtyordered.clear();
+                priceactual.clear();        
 
         
 		/* Transform the string orderValues into a list */
@@ -466,19 +491,17 @@ public class MyTransform {
 
 		Document input = Jsoup.parse(inputXML);
 
-		/*
-		 * go through the list xmlEntries, identify the Nodes with name
-		 * xmlEntry[i] and get it's value
-		 */
-
-		for (int i = 0; i < xmlEntries.size(); i++) {
-			String key = xmlEntries.get(i);
-			System.out.println(key);
-
-			Element xmlValue = input.select(key).get(0);
-			String xmlString = xmlValue.text();
-			orderEntries.put(key, xmlString.replaceAll("'","''"));
-		}
+            /*
+             * go through the list xmlEntries, identify the Nodes with name
+             * xmlEntry[i] and get it's value
+             */
+            for (String key : xmlEntries) {
+                System.out.println(key);
+                
+                Element xmlValue = input.select(key).get(0);
+                String xmlString = xmlValue.text();
+                orderEntries.put(key, xmlString.replaceAll("'","''"));
+            }
 
 		/** get the date format right for sql **/
 		
@@ -494,7 +517,8 @@ public class MyTransform {
 				sdf.applyPattern(NEW_FORMAT);
 				newDateString = sdf.format(d);
 				orderEntries.put("created",newDateString);
-			} catch(Exception e) {System.out.println("Date Format Failed"); }
+			} catch(ParseException pe) 
+                        { logger.log(Level.SEVERE, "Date conversion failed: "+ pe.getMessage()); }
 		
 		/** reformat address **/
 		setCountryCodes();
@@ -517,15 +541,19 @@ public class MyTransform {
 		
 		/** analyze the HTML entry from Magento and write data to the arrays **/
 		analyzeHTML(inputXML);
-
+                
+                /* create Bp import entry */
+                
+                answer += createSQLBP();
+                 
 		/**
 		 * go through the list of products and create one entry in the DB per
 		 * product
 		 */
-
+                documentno=orderEntries.get("i_order_id");
 		for (int i = 0; i < sku.size(); i++) {
 			/* create individual i_order_id */
-			String tmp = orderEntries.get("i_order_id");
+			String tmp = documentno;
 			String tmpshort = tmp.substring(tmp.length() - 6);
 			String uniqueOrder = "1" + tmpshort + "0" + Integer.toString(i+1);
 			orderEntries.put("i_order_id", uniqueOrder);
@@ -542,7 +570,7 @@ public class MyTransform {
 	public void addToDB(Object body) {
 		try {
 			Process p = new ProcessBuilder(
-					"/opt/omnEmpiere/scripts/addOrderToDB.sh").start();    // change PATH if neccessary
+					"/opt/omnEmpiere/scripts/addOrderToDB.sh").start();
 			p.waitFor();
 			BufferedReader error = new BufferedReader(new InputStreamReader(p.getErrorStream()));
 			BufferedReader output =  new BufferedReader(new InputStreamReader(p.getInputStream()));
@@ -553,7 +581,7 @@ public class MyTransform {
 		    
 		} catch (Exception e) {
 			System.err.println("call failed: " + e.getMessage());
-			logger.severe("Can not call DB script " + e.getMessage());
+			logger.log(Level.SEVERE, "Can not call DB script {0}", e.getMessage());
 		} 
 		
 	}

@@ -15,7 +15,7 @@
  * 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.                     *
  *****************************************************************************/
 
-The Magento get orders uses the eMail sent by Magento to the customer. Please configure Magento correctly (see documetnation) and set the <from element according to the IMAP URI and PWD   
+   
 
 -->
 
@@ -27,7 +27,7 @@ The Magento get orders uses the eMail sent by Magento to the customer. Please co
 
     <camelContext xmlns="http://camel.apache.org/schema/blueprint">
   <route>
-    <from uri="imaps://Your Email URI here &amp;password=your pathword here&amp;delete=true"/>
+    <from uri="imaps://prd1.anubesit.com?username=demoshop@anubesit.com&amp;password=servicemix&amp;delete=true"/>
     <bean ref="myTransform" method="transform"/>
     <split streaming="true">
       <tokenize token="sqlStatement" xml="true"></tokenize>

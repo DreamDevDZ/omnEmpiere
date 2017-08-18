@@ -4,17 +4,19 @@
   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
  
   <properties>
-    <bundle.symbolicName>net.omnempiere.MagentoPushProducts-bundle</bundle.symbolicName>
-    <bundle.namespace>net.omnempiere.MagentoPushProducts</bundle.namespace>
+    <bundle.symbolicName>com.anubesit.MagentoPushProducts-bundle</bundle.symbolicName>
+    <bundle.namespace>com.anubesit.MagentoPushProducts</bundle.namespace>
     <commons.log>1.1</commons.log>
+    <maven.compiler.source>1.8</maven.compiler.source>
+    <maven.compiler.target>1.8</maven.compiler.target>
   </properties>
 
     <modelVersion>4.0.0</modelVersion>
     
-    <groupId>net.omnempiere.MagentoPushProducts</groupId>
+    <groupId>com.anubesit.MagentoPushProducts</groupId>
     <artifactId>MagentoPushProducts</artifactId>
-    <version>0.3</version>
-     <name>${bundle.symbolicName} [${bundle.namespace}]</name>
+    <version>0.9</version>
+     <name>com.anubesit.MagentoPushProducts-bundle [com.anubesit.MagentoPushProducts]</name>
     <description>OmnEmpiere push Productsto Magento</description>
     <packaging>bundle</packaging>
 
